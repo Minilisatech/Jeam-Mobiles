@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroLog — Product Registry</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #1a1d24;
+    --border: #252830;
+    --accent: #00e5a0;
+    --accent2: #0066ff;
+    --danger: #ff4560;
+    --warn: #ffb800;
+    --text: #eef0f4;
+    --muted: #6b7280;
+    --card: #13161d;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ════════ LOGIN PAGE ════════ */
+  #login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+  }
+  #login-page::after {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    width: 100%;
+    max-width: 440px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+  }
+  .login-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    margin-bottom: 0.3rem;
+  }
+  .login-logo span { color: var(--text); }
+  .login-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 2.5rem; }
+  .login-label {
+    display: block;
+    font-size: 0.78rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+  .login-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 1.2rem;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 0.5rem;
+  }
+  .login-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .login-err { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; display: none; }
+  .login-users {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+  .login-users strong { color: var(--accent); }
+
+  /* ════════ APP SHELL ════════ */
+  #app { display: none; min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    padding: 1.5rem 1rem;
+  }
+  .sidebar-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accent);
+    padding: 0.5rem 0.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+  .sidebar-logo span { color: var(--text); }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.75rem 0.75rem;
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 0.2rem;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(0,229,160,0.1); color: var(--accent); }
+  .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+  .sidebar-spacer { flex: 1; }
+  .user-badge {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 0.85rem;
+  }
+  .user-avatar {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #000; font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+  .user-name { font-weight: 600; color: var(--text); }
+  .user-role { color: var(--muted); font-size: 0.75rem; }
+  .logout-btn {
+    background: none; border: none; color: var(--danger);
+    cursor: pointer; font-size: 0.8rem; margin-top: 0.5rem;
+    padding: 0.3rem 0.75rem; text-align: left; width: 100%;
+    border-radius: 6px; transition: background 0.15s;
+  }
+  .logout-btn:hover { background: rgba(255,69,96,0.1); }
+
+  /* ── MAIN ── */
+  .main {
+    margin-left: 240px;
+    padding: 2rem 2.5rem;
+    min-height: 100vh;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+  }
+  .page-title span { color: var(--accent); }
+  .page-sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; font-family: 'DM Mono', monospace; }
+
+  /* ── STATS CARDS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.3rem 1.5rem;
+  }
+  .stat-label { color: var(--muted); font-size: 0.75rem; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; margin: 0.3rem 0; }
+  .stat-change { font-size: 0.78rem; color: var(--accent); }
+
+  /* ── SECTION ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── FORM ── */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  .form-card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  .form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label {
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .form-control {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .form-control:focus { border-color: var(--accent); }
+  select.form-control { cursor: pointer; }
+  textarea.form-control { resize: vertical; min-height: 90px; }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(0,229,160,0.04); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .upload-text { color: var(--muted); font-size: 0.85rem; }
+  .upload-text strong { color: var(--accent); }
+  .media-previews { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1rem; }
+  .media-thumb {
+    width: 80px; height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .media-thumb-wrap { position: relative; display: inline-block; }
+  .thumb-del {
+    position: absolute; top: -6px; right: -6px;
+    background: var(--danger); color: #fff;
+    border: none; border-radius: 50%;
+    width: 18px; height: 18px; font-size: 10px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .video-thumb {
+    width: 80px; height: 80px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 0.6rem; color: var(--muted); gap: 0.2rem;
+  }
+
+  /* ── COLOR PICKER ROW ── */
+  .color-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  .color-swatch {
+    width: 28px; height: 28px; border-radius: 6px;
+    cursor: pointer; border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: var(--text); transform: scale(1.15); }
+  .color-custom { width: 28px; height: 28px; border-radius: 6px; cursor: pointer; border: none; padding: 0; }
+
+  /* ── SUBMIT BTN ── */
+  .submit-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem 2.5rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 1rem;
+  }
+  .submit-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* ── SUCCESS TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 2rem; right: 2rem;
+    background: var(--accent);
+    color: #000;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    z-index: 9999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,229,160,0.3);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .table-toolbar {
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; }
+  .search-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    width: 220px;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: var(--surface2);
+    padding: 0.75rem 1.2rem;
+    text-align: left;
+    font-size: 0.72rem;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  td {
+    padding: 0.9rem 1.2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.875rem;
+    vertical-align: middle;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+  .badge-green { background: rgba(0,229,160,0.15); color: var(--accent); }
+  .badge-blue { background: rgba(0,102,255,0.15); color: #4d9fff; }
+  .badge-yellow { background: rgba(255,184,0,0.15); color: var(--warn); }
+  .badge-red { background: rgba(255,69,96,0.15); color: var(--danger); }
+  .color-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    display: inline-block; margin-right: 0.4rem;
+    vertical-align: middle; border: 1px solid rgba(255,255,255,0.15);
+  }
+  .thumb-mini {
+    width: 40px; height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+  }
+  .action-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .del-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--danger);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .del-btn:hover { background: rgba(255,69,96,0.1); border-color: var(--danger); }
+  .empty-row { text-align: center; padding: 3rem; color: var(--muted); }
+
+  /* ── DETAIL MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 2rem;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 1.2rem; right: 1.2rem;
+    background: var(--surface2); border: none; color: var(--muted);
+    width: 32px; height: 32px; border-radius: 8px;
+    cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; margin-bottom: 0.3rem; }
+  .modal-sub { color: var(--muted); font-size: 0.8rem; font-family: 'DM Mono', monospace; margin-bottom: 1.5rem; }
+  .modal-section-title { font-size: 0.72rem; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 1.5rem 0 0.8rem; }
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .modal-field label { font-size: 0.72rem; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; display: block; margin-bottom: 0.2rem; }
+  .modal-field p { font-size: 0.9rem; }
+  .modal-images { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .modal-img { width: 100px; height: 100px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .sidebar { width: 60px; }
+    .nav-item span, .sidebar-logo span.word, .user-name, .user-role, .logout-btn { display: none; }
+    .sidebar-logo { font-size: 1rem; padding: 0.5rem 0; text-align: center; }
+    .main { margin-left: 60px; padding: 1.5rem; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid.cols3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN PAGE ════════ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">Electro<span>Log</span></div>
+    <p class="login-sub">Electronics Product Registry System</p>
+    <label class="login-label">Username</label>
+    <input class="login-input" id="l-user" type="text" placeholder="Enter your username" autocomplete="username"/>
+    <label class="login-label">Password</label>
+    <input class="login-input" id="l-pass" type="password" placeholder="Enter your password" autocomplete="current-password"/>
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+    <p class="login-err" id="login-err">❌ Invalid username or password.</p>
+    <div class="login-users">
+      <strong>Demo accounts:</strong><br>
+      admin / admin123 &nbsp;|&nbsp; staff / staff123 &nbsp;|&nbsp; viewer / view123
+    </div>
+  </div>
+</div>
+
+<!-- ════════ APP ════════ -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">⚡ <span class="word">ElectroLog</span></div>
+    <button class="nav-item active" onclick="showSection('dashboard', this)">
+      <span class="nav-icon">📊</span><span>Dashboard</span>
+    </button>
+    <button class="nav-item" onclick="showSection('register', this)">
+      <span class="nav-icon">➕</span><span>Register Product</span>
+    </button>
+    <button class="nav-item" onclick="showSection('products', this)">
+      <span class="nav-icon">📦</span><span>All Products</span>
+    </button>
+    <div class="sidebar-spacer"></div>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">A</div>
+      <div>
+        <div class="user-name" id="user-name">Admin</div>
+        <div class="user-role" id="user-role">Administrator</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">🚪 Log Out</button>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section class="section active" id="sec-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard <span>Overview</span></div>
+          <div class="page-sub" id="dash-date"></div>
+        </div>
+        <button class="submit-btn" style="margin-top:0;padding:0.65rem 1.5rem;font-size:0.9rem" onclick="showSection('register', document.querySelectorAll('.nav-item')[1])">+ Register Product</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Products</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-change">📦 Registered</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Added Today</div>
+          <div class="stat-value" id="stat-today">0</div>
+          <div class="stat-change">🕐 Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Suppliers</div>
+          <div class="stat-value" id="stat-suppliers">0</div>
+          <div class="stat-change">👤 Unique</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Categories</div>
+          <div class="stat-value" id="stat-cats">0</div>
+          <div class="stat-change">🗂️ Types</div>
+        </div>
+      </div>
+      <!-- Recent table -->
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="table-title">Recent Registrations</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Photo</th><th>Product</th><th>Category</th><th>Supplier</th><th>Date & Time</th><th>Status</th>
+          </tr></thead>
+          <tbody id="recent-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REGISTER FORM -->
+    <section class="section" id="sec-register">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Register <span>Product</span></div>
+          <div class="page-sub">Fill in all details — photos & videos included</div>
+        </div>
+      </div>
+
+      <form id="reg-form" onsubmit="submitProduct(event)">
+
+        <!-- Product Details -->
+        <div class="form-card">
+          <div class="form-card-title">📦 Product Details</div>
+          <div class="form-grid cols3">
+            <div class="form-group">
+              <label class="form-label">Product Name *</label>
+              <input class="form-control" id="f-name" type="text" placeholder="e.g. Samsung TV 55″" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Brand *</label>
+              <input class="form-control" id="f-brand" type="text" placeholder="e.g. Samsung" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Model Number</label>
+              <input class="form-control" id="f-model" type="text" placeholder="e.g. UN55TU8000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category *</label>
+              <select class="form-control" id="f-cat" required>
+                <option value="">Select category…</option>
+                <option>Television</option>
+                <option>Mobile Phone</option>
+                <option>Laptop / Computer</option>
+                <option>Audio / Speaker</option>
+                <option>Home Appliance</option>
+                <option>Camera</option>
+                <option>Gaming</option>
+                <option>Tablet</option>
+                <option>Accessories</option>
+                <option>Other Electronics</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Condition</label>
+              <select class="form-control" id="f-condition">
+                <option>New</option>
+                <option>Used – Good</option>
+                <option>Used – Fair</option>
+                <option>Refurbished</option>
+                <option>Damaged / For Parts</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Serial / IMEI Number</label>
+              <input class="form-control" id="f-serial" type="text" placeholder="Serial or IMEI">
+            </div>
+          </div>
+        </div>
+
+        <!-- Physical Details -->
+        <div class="form-card">
+          <div class="form-card-title">🎨 Physical Description</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Shape / Form Factor</label>
+              <select class="form-control" id="f-shape">
+                <option value="">Select…</option>
+                <option>Rectangular / Flat</option>
+                <option>Square</option>
+                <option>Circular / Round</option>
+                <option>L-Shape</option>
+                <option>Cylindrical</option>
+                <option>Irregular</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Size / Dimensions</label>
+              <input class="form-control" id="f-size" type="text" placeholder='e.g. 55″ or 30×20×5 cm'>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Weight</label>
+              <input class="form-control" id="f-weight" type="text" placeholder="e.g. 2.5 kg">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quantity Received</label>
+              <input class="form-control" id="f-qty" type="number" min="1" value="1">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Color(s)</label>
+              <div class="color-row" id="color-row">
+                <div class="color-swatch" style="background:#000000" data-color="#000000" onclick="pickColor(this)" title="Black"></div>
+                <div class="color-swatch" style="background:#ffffff;border:1px solid #444" data-color="#ffffff" onclick="pickColor(this)" title="White"></div>
+                <div class="color-swatch" style="background:#c0c0c0" data-color="#c0c0c0" onclick="pickColor(this)" title="Silver"></div>
+                <div class="color-swatch" style="background:#808080" data-color="#808080" onclick="pickColor(this)" title="Gray"></div>
+                <div class="color-swatch" style="background:#ff0000" data-color="#ff0000" onclick="pickColor(this)" title="Red"></div>
+                <div class="color-swatch" style="background:#0055ff" data-color="#0055ff" onclick="pickColor(this)" title="Blue"></div>
+                <div class="color-swatch" style="background:#ffd700" data-color="#ffd700" onclick="pickColor(this)" title="Gold"></div>
+                <div class="color-swatch" style="background:#00b050" data-color="#00b050" onclick="pickColor(this)" title="Green"></div>
+                <div class="color-swatch" style="background:#ff6a00" data-color="#ff6a00" onclick="pickColor(this)" title="Orange"></div>
+                <div class="color-swatch" style="background:#8b00ff" data-color="#8b00ff" onclick="pickColor(this)" title="Purple"></div>
+                <div class="color-swatch" style="background:#ff69b4" data-color="#ff69b4" onclick="pickColor(this)" title="Pink"></div>
+                <div class="color-swatch" style="background:#a0522d" data-color="#a0522d" onclick="pickColor(this)" title="Brown"></div>
+                <input type="color" class="color-custom" id="custom-color" title="Custom color" onchange="addCustomColor(this)">
+              </div>
+              <input type="hidden" id="f-color" value="">
+              <small style="color:var(--muted);font-size:0.75rem;margin-top:0.4rem" id="color-label">No color selected</small>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Additional Description</label>
+              <textarea class="form-control" id="f-desc" placeholder="Any extra notes about the product…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Supplier Details -->
+        <div class="form-card">
+          <div class="form-card-title">👤 Supplier / Bringer Details</div>
+          <div class="form-grid cols3">
+            <div class="form-group">
+              <label class="form-label">Full Name *</label>
+              <input class="form-control" id="f-sname" type="text" placeholder="Full name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone Number *</label>
+              <input class="form-control" id="f-phone" type="tel" placeholder="+234 000 000 0000" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Alternative Phone</label>
+              <input class="form-control" id="f-phone2" type="tel" placeholder="Optional">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input class="form-control" id="f-email" type="email" placeholder="supplier@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ID / Company Reg.</label>
+              <input class="form-control" id="f-sid" type="text" placeholder="ID or company number">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Relationship</label>
+              <select class="form-control" id="f-rel">
+                <option>Individual Seller</option>
+                <option>Company / Business</option>
+                <option>Partner Supplier</option>
+                <option>Walk-in Customer</option>
+                <option>Unknown</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Address *</label>
+              <textarea class="form-control" id="f-addr" placeholder="Street, City, State, Country" required style="min-height:70px"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Media Upload -->
+        <div class="form-card">
+          <div class="form-card-title">📷 Photos of Product</div>
+          <div class="upload-zone" id="photo-zone">
+            <input type="file" accept="image/*" multiple onchange="handlePhotos(this)">
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-text">Drag & drop photos here or <strong>click to browse</strong></div>
+            <div class="upload-text" style="font-size:0.75rem;margin-top:0.3rem">JPG, PNG, WEBP — multiple files OK</div>
+          </div>
+          <div class="media-previews" id="photo-previews"></div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-title">🎥 Videos of Product</div>
+          <div class="upload-zone" id="video-zone">
+            <input type="file" accept="video/*" multiple onchange="handleVideos(this)">
+            <div class="upload-icon">📹</div>
+            <div class="upload-text">Drag & drop videos here or <strong>click to browse</strong></div>
+            <div class="upload-text" style="font-size:0.75rem;margin-top:0.3rem">MP4, MOV, AVI — multiple files OK</div>
+          </div>
+          <div class="media-previews" id="video-previews"></div>
+        </div>
+
+        <!-- Date/Time (auto-filled but editable) -->
+        <div class="form-card">
+          <div class="form-card-title">🕐 Date & Time of Registration</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Date Received *</label>
+              <input class="form-control" id="f-date" type="date" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Time Received *</label>
+              <input class="form-control" id="f-time" type="time" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Received By (Staff)</label>
+              <input class="form-control" id="f-staff" type="text" placeholder="Staff name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-control" id="f-status">
+                <option>In Stock</option>
+                <option>Sold</option>
+                <option>Under Inspection</option>
+                <option>Returned</option>
+                <option>Damaged</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn">✅ Save & Register Product</button>
+      </form>
+    </section>
+
+    <!-- ALL PRODUCTS -->
+    <section class="section" id="sec-products">
+      <div class="page-header">
+        <div>
+          <div class="page-title">All <span>Products</span></div>
+          <div class="page-sub">Full product registry</div>
+        </div>
+        <button class="submit-btn" style="margin-top:0;padding:0.65rem 1.5rem;font-size:0.9rem" onclick="showSection('register', document.querySelectorAll('.nav-item')[1])">+ Register Product</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="table-title">Product Registry</div>
+          <input class="search-box" id="search-box" placeholder="🔍 Search products…" oninput="renderTable()">
+        </div>
+        <table>
+          <thead><tr>
+            <th>Photo</th><th>Product</th><th>Brand</th><th>Category</th><th>Color</th><th>Supplier</th><th>Phone</th><th>Date Received</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✅ Product registered successfully!</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA & STATE
+// ═══════════════════════════════════════════════
+const USERS = {
+  admin:  { pass: 'admin123',  role: 'Administrator', name: 'Admin' },
+  staff:  { pass: 'staff123',  role: 'Staff Member',  name: 'Staff' },
+  viewer: { pass: 'view123',   role: 'Viewer',        name: 'Viewer' }
+};
+
+let products = JSON.parse(localStorage.getItem('electro_products') || '[]');
+let currentUser = null;
+let selectedColor = '';
+let photoDataURLs = [];
+let videoNames = [];
+
+// ═══════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('l-user').value.trim().toLowerCase();
+  const p = document.getElementById('l-pass').value;
+  if (USERS[u] && USERS[u].pass === p) {
+    currentUser = { username: u, ...USERS[u] };
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-name').textContent = currentUser.name;
+    document.getElementById('user-role').textContent = currentUser.role;
+    document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+    document.getElementById('f-staff').value = currentUser.name;
+    initDashboard();
+    setDateTime();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('l-user').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('login-err').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name === 'dashboard') initDashboard();
+  if(name === 'products') renderTable();
+}
+
+// ═══════════════════════════════════════════════
+//  DATE / TIME AUTO-FILL
+// ═══════════════════════════════════════════════
+function setDateTime() {
+  const now = new Date();
+  document.getElementById('f-date').value = now.toISOString().split('T')[0];
+  document.getElementById('f-time').value = now.toTimeString().slice(0,5);
+  document.getElementById('dash-date').textContent =
+    now.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+}
+
+// ═══════════════════════════════════════════════
+//  COLOR PICKER
+// ═══════════════════════════════════════════════
+function pickColor(el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = el.dataset.color;
+  document.getElementById('f-color').value = selectedColor;
+  document.getElementById('color-label').textContent = '● Selected: ' + selectedColor;
+  document.getElementById('color-label').style.color = selectedColor === '#000000' || selectedColor === '#ffffff' ? 'var(--muted)' : selectedColor;
+}
+function addCustomColor(input) {
+  selectedColor = input.value;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  document.getElementById('f-color').value = selectedColor;
+  document.getElementById('color-label').textContent = '● Custom: ' + selectedColor;
+  document.getElementById('color-label').style.color = selectedColor;
+}
+
+// ═══════════════════════════════════════════════
+//  MEDIA UPLOAD
+// ═══════════════════════════════════════════════
+function handlePhotos(input) {
+  const files = Array.from(input.files);
+  const prev = document.getElementById('photo-previews');
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const idx = photoDataURLs.length;
+      photoDataURLs.push(e.target.result);
+      const wrap = document.createElement('div');
+      wrap.className = 'media-thumb-wrap';
+      wrap.innerHTML = `<img class="media-thumb" src="${e.target.result}"><button class="thumb-del" onclick="removePhoto(${idx},this)">×</button>`;
+      prev.appendChild(wrap);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function removePhoto(idx, btn) {
+  photoDataURLs.splice(idx, 1);
+  btn.closest('.media-thumb-wrap').remove();
+}
+
+function handleVideos(input) {
+  const files = Array.from(input.files);
+  const prev = document.getElementById('video-previews');
+  files.forEach(file => {
+    videoNames.push(file.name);
+    const wrap = document.createElement('div');
+    wrap.className = 'media-thumb-wrap';
+    wrap.innerHTML = `<div class="video-thumb">🎥<span>${file.name.slice(0,10)}…</span></div><button class="thumb-del" onclick="this.closest('.media-thumb-wrap').remove()">×</button>`;
+    prev.appendChild(wrap);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  SUBMIT
+// ═══════════════════════════════════════════════
+function submitProduct(e) {
+  e.preventDefault();
+  const now = new Date();
+  const product = {
+    id: 'PRD-' + Date.now(),
+    regDate: now.toISOString(),
+    displayDate: document.getElementById('f-date').value,
+    displayTime: document.getElementById('f-time').value,
+    name:      document.getElementById('f-name').value,
+    brand:     document.getElementById('f-brand').value,
+    model:     document.getElementById('f-model').value,
+    category:  document.getElementById('f-cat').value,
+    condition: document.getElementById('f-condition').value,
+    serial:    document.getElementById('f-serial').value,
+    shape:     document.getElementById('f-shape').value,
+    size:      document.getElementById('f-size').value,
+    weight:    document.getElementById('f-weight').value,
+    qty:       document.getElementById('f-qty').value,
+    color:     selectedColor || '#888',
+    desc:      document.getElementById('f-desc').value,
+    supplier: {
+      name:   document.getElementById('f-sname').value,
+      phone:  document.getElementById('f-phone').value,
+      phone2: document.getElementById('f-phone2').value,
+      email:  document.getElementById('f-email').value,
+      id:     document.getElementById('f-sid').value,
+      rel:    document.getElementById('f-rel').value,
+      addr:   document.getElementById('f-addr').value,
+    },
+    photos:  [...photoDataURLs],
+    videos:  [...videoNames],
+    staff:   document.getElementById('f-staff').value,
+    status:  document.getElementById('f-status').value,
+  };
+
+  products.unshift(product);
+  localStorage.setItem('electro_products', JSON.stringify(products));
+
+  // Reset form
+  document.getElementById('reg-form').reset();
+  photoDataURLs = []; videoNames = [];
+  document.getElementById('photo-previews').innerHTML = '';
+  document.getElementById('video-previews').innerHTML = '';
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+  selectedColor = '';
+  document.getElementById('color-label').textContent = 'No color selected';
+  document.getElementById('f-color').value = '';
+  document.getElementById('f-staff').value = currentUser.name;
+  setDateTime();
+
+  showToast('✅ Product registered successfully!');
+  setTimeout(() => showSection('products', document.querySelectorAll('.nav-item')[2]), 800);
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+function initDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayProds = products.filter(p => p.displayDate === today);
+  const suppliers = new Set(products.map(p => p.supplier.phone));
+  const cats = new Set(products.map(p => p.category));
+  document.getElementById('stat-total').textContent = products.length;
+  document.getElementById('stat-today').textContent = todayProds.length;
+  document.getElementById('stat-suppliers').textContent = suppliers.size;
+  document.getElementById('stat-cats').textContent = cats.size;
+
+  const tbody = document.getElementById('recent-tbody');
+  const recent = products.slice(0, 8);
+  if (!recent.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-row">No products registered yet. <a href="#" onclick="showSection('register', document.querySelectorAll('.nav-item')[1])" style="color:var(--accent)">Register one →</a></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = recent.map(p => `
+    <tr>
+      <td>${p.photos && p.photos.length ? `<img class="thumb-mini" src="${p.photos[0]}">` : '📦'}</td>
+      <td><strong>${p.name}</strong><br><span style="color:var(--muted);font-size:0.75rem">${p.id}</span></td>
+      <td><span class="badge badge-blue">${p.category}</span></td>
+      <td>${p.supplier.name}</td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:0.8rem">${p.displayDate} ${p.displayTime}</span></td>
+      <td><span class="badge ${statusBadge(p.status)}">${p.status}</span></td>
+    </tr>
+  `).join('');
+  setDateTime();
+}
+
+// ═══════════════════════════════════════════════
+//  PRODUCTS TABLE
+// ═══════════════════════════════════════════════
+function renderTable() {
+  const q = (document.getElementById('search-box')?.value || '').toLowerCase();
+  const filtered = products.filter(p =>
+    [p.name, p.brand, p.category, p.supplier.name, p.supplier.phone, p.serial, p.id]
+      .join(' ').toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById('products-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-row">${q ? 'No results for "'+q+'"' : 'No products registered yet.'}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td>${p.photos && p.photos.length ? `<img class="thumb-mini" src="${p.photos[0]}">` : '📦'}</td>
+      <td><strong>${p.name}</strong><br><span style="color:var(--muted);font-size:0.72rem;font-family:'DM Mono',monospace">${p.id}</span></td>
+      <td>${p.brand}</td>
+      <td><span class="badge badge-blue">${p.category}</span></td>
+      <td><span class="color-dot" style="background:${p.color}"></span>${p.color}</td>
+      <td>${p.supplier.name}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${p.supplier.phone}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${p.displayDate}<br>${p.displayTime}</td>
+      <td><span class="badge ${statusBadge(p.status)}">${p.status}</span></td>
+      <td>
+        <button class="action-btn" onclick="openModal('${p.id}')">View</button>
+        <button class="del-btn" onclick="deleteProduct('${p.id}')">Del</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function statusBadge(s) {
+  const m = {'In Stock':'badge-green','Sold':'badge-yellow','Under Inspection':'badge-blue','Returned':'badge-yellow','Damaged':'badge-red'};
+  return m[s] || 'badge-green';
+}
+
+function deleteProduct(id) {
+  if (!confirm('Delete this product record? This cannot be undone.')) return;
+  products = products.filter(p => p.id !== id);
+  localStorage.setItem('electro_products', JSON.stringify(products));
+  renderTable();
+  showToast('🗑️ Product deleted.');
+}
+
+// ═══════════════════════════════════════════════
+//  DETAIL MODAL
+// ═══════════════════════════════════════════════
+function openModal(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-content').innerHTML = `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">${p.name}</div>
+    <div class="modal-sub">${p.id} · Registered ${p.displayDate} at ${p.displayTime}</div>
+    <span class="badge ${statusBadge(p.status)}">${p.status}</span>
+    <div class="modal-section-title">📦 Product Info</div>
+    <div class="modal-grid">
+      <div class="modal-field"><label>Brand</label><p>${p.brand||'—'}</p></div>
+      <div class="modal-field"><label>Model</label><p>${p.model||'—'}</p></div>
+      <div class="modal-field"><label>Category</label><p>${p.category}</p></div>
+      <div class="modal-field"><label>Condition</label><p>${p.condition}</p></div>
+      <div class="modal-field"><label>Serial / IMEI</label><p>${p.serial||'—'}</p></div>
+      <div class="modal-field"><label>Quantity</label><p>${p.qty}</p></div>
+      <div class="modal-field"><label>Shape</label><p>${p.shape||'—'}</p></div>
+      <div class="modal-field"><label>Size</label><p>${p.size||'—'}</p></div>
+      <div class="modal-field"><label>Weight</label><p>${p.weight||'—'}</p></div>
+      <div class="modal-field"><label>Color</label><p><span class="color-dot" style="background:${p.color}"></span>${p.color}</p></div>
+    </div>
+    ${p.desc ? `<div class="modal-section-title">Notes</div><p style="font-size:0.9rem;color:var(--muted)">${p.desc}</p>` : ''}
+    <div class="modal-section-title">👤 Supplier Details</div>
+    <div class="modal-grid">
+      <div class="modal-field"><label>Name</label><p>${p.supplier.name}</p></div>
+      <div class="modal-field"><label>Phone</label><p>${p.supplier.phone}${p.supplier.phone2?' / '+p.supplier.phone2:''}</p></div>
+      <div class="modal-field"><label>Email</label><p>${p.supplier.email||'—'}</p></div>
+      <div class="modal-field"><label>Type</label><p>${p.supplier.rel}</p></div>
+      <div class="modal-field"><label>ID / Reg.</label><p>${p.supplier.id||'—'}</p></div>
+      <div class="modal-field"><label>Received By</label><p>${p.staff||'—'}</p></div>
+    </div>
+    <div class="modal-field" style="margin-top:0.8rem"><label>Address</label><p>${p.supplier.addr}</p></div>
+    ${p.photos && p.photos.length ? `
+      <div class="modal-section-title">📷 Photos (${p.photos.length})</div>
+      <div class="modal-images">${p.photos.map(src=>`<img class="modal-img" src="${src}">`).join('')}</div>
+    ` : ''}
+    ${p.videos && p.videos.length ? `
+      <div class="modal-section-title">🎥 Videos (${p.videos.length})</div>
+      <p style="color:var(--muted);font-size:0.85rem">${p.videos.join(', ')}</p>
+    ` : ''}
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModalOutside(e) { if(e.target.id==='modal-overlay') closeModal(); }
+
+// ═══════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// INIT
+setDateTime();
+</script>
+</body>
+</html>
